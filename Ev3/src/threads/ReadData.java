@@ -10,9 +10,9 @@ public class ReadData implements Runnable {
 
     @Override
     public void run() {
-        while (Robot.getRun() == 1) {
+        while (true) {
             try {
-                Thread.sleep(500);
+                Thread.sleep(500); // Wait before polling again
 
                 URL url = new URL("http://172.20.10.4:8080/jager/rest/robotservice/latest");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -27,20 +27,32 @@ public class ReadData implements Runnable {
                     while ((line = br.readLine()) != null) {
                         System.out.println("Received line: " + line);
 
-                        // Expecting JSON like: {"id":8,"speed":190,"turn":30}
-                        if (line.contains("speed") && line.contains("turn")) {
-                            int speed = extractValue(line, "\"speed\":", ",");
-                            int turn = extractValue(line, "\"turn\":", "}");
-                            int duration = extractValue(line, "\"duration\":", ",");
-                            String task = extractStringValue(line, "\"task\":\"", "\"");
+                        // Parse only if all expected fields are present
+                        if (line.contains("speed") && line.contains("turn") && line.contains("duration") && line.contains("task")) {
 
-                            Robot.setRun(1); // Assuming 1 means active
-                            Robot.setSpeed(speed);
-                            Robot.setTurn(turn);
-                            Robot.setDuration(duration);
-                            Robot.setTask(task);
+                            // Check if robot is idle
+                            if (Robot.getRun() == 0) {
+                                int speed = extractValue(line, "\"speed\":", ",");
+                                int turn = extractValue(line, "\"turn\":", ",");
+                                int durationSec = extractValue(line, "\"duration\":", ",");
+                                String task = extractStringValue(line, "\"task\":\"", "\"");
+
+                                int duration = durationSec * 1000; // Convert to milliseconds
+
+                                // Set robot parameters
+                                Robot.setSpeed(speed);
+                                Robot.setTurn(turn);
+                                Robot.setDuration(duration);
+                                Robot.setTask(task);
+                                Robot.setRun(1); // Trigger motor thread to act
+
+                                System.out.println("New command accepted: " + task + ", " + speed + " speed, " + durationSec + " sec");
+                            } else {
+                                System.out.println("Motor is busy, skipping new command.");
+                            }
+
                         } else {
-                            System.out.println("Invalid line: " + line);
+                            System.out.println("Invalid or incomplete line: " + line);
                         }
                     }
                 } finally {
@@ -60,16 +72,18 @@ public class ReadData implements Runnable {
             int end = line.indexOf(endChar, start);
             return Integer.parseInt(line.substring(start, end).trim());
         } catch (Exception e) {
-            return 0; // Default value in case of error
+            System.out.println("Error parsing int for key: " + key);
+            return 0;
         }
     }
-    
+
     private String extractStringValue(String line, String key, String endChar) {
         try {
             int start = line.indexOf(key) + key.length();
             int end = line.indexOf(endChar, start);
             return line.substring(start, end);
         } catch (Exception e) {
+            System.out.println("Error parsing string for key: " + key);
             return "";
         }
     }
