@@ -18,7 +18,6 @@ public class motor implements Runnable {
         leftMotor = new EV3LargeRegulatedMotor(MotorPort.A);
         rightMotor = new EV3LargeRegulatedMotor(MotorPort.D);
 
-        // Ultrasonic Sensor setup on port S1
         ultrasonic = new EV3UltrasonicSensor(SensorPort.S1);
         distanceProvider = ultrasonic.getDistanceMode();
         sample = new float[distanceProvider.sampleSize()];
@@ -32,34 +31,24 @@ public class motor implements Runnable {
                 int speed = Robot.getSpeed();
                 int duration = Robot.getDuration();
 
-                // Measure distance
-                distanceProvider.fetchSample(sample, 0);
-                float distance = sample[0]; // in meters
-
                 System.out.println("Executing task: " + task + " | Speed: " + speed + " | Duration: " + duration);
-                System.out.println("Ultrasonic Distance: " + distance);
 
-                if (distance < 0.15f && task.equals("FORWARD")) {
-                    System.out.println("Obstacle too close! Aborting forward movement.");
-                    stopMotors();
-                } else {
-                    switch (task) {
-                        case "FORWARD":
-                            moveForward(speed, duration);
-                            break;
-                        case "BACK":
-                            moveBackward(speed, duration);
-                            break;
-                        case "LEFT":
-                            turnLeft(speed, duration);
-                            break;
-                        case "RIGHT":
-                            turnRight(speed, duration);
-                            break;
-                        default:
-                            stopMotors();
-                            break;
-                    }
+                switch (task) {
+                    case "FORWARD":
+                        moveForwardWithObstacleCheck(speed, duration);
+                        break;
+                    case "BACK":
+                        moveBackward(speed, duration);
+                        break;
+                    case "LEFT":
+                        turnLeft(speed, duration);
+                        break;
+                    case "RIGHT":
+                        turnRight(speed, duration);
+                        break;
+                    default:
+                        stopMotors();
+                        break;
                 }
 
                 Robot.setRun(0); // Reset after task completion
@@ -68,19 +57,43 @@ public class motor implements Runnable {
             }
 
             try {
-                Thread.sleep(100);
+                Thread.sleep(100); // small delay to prevent busy looping
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private void moveForward(int speed, int duration) {
+    // Move forward with obstacle detection
+    private void moveForwardWithObstacleCheck(int speed, int duration) {
         leftMotor.setSpeed(speed);
         rightMotor.setSpeed(speed);
         leftMotor.forward();
         rightMotor.forward();
-        delay(duration);
+
+        int elapsed = 0;
+        int step = 100;
+
+        while (elapsed < duration) {
+            distanceProvider.fetchSample(sample, 0);
+            float distance = sample[0];
+
+            System.out.println("Distance: " + distance);
+
+            if (!Float.isNaN(distance) && !Float.isInfinite(distance) && distance < 0.15f) {
+                System.out.println("Obstacle detected! Stopping early.");
+                break;
+            }
+
+            try {
+                Thread.sleep(step);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            elapsed += step;
+        }
+
         stopMotors();
     }
 
@@ -113,7 +126,7 @@ public class motor implements Runnable {
 
     private void stopMotors() {
         leftMotor.stop(true);
-        rightMotor.stop();
+        rightMotor.stop(true);
     }
 
     private void delay(int ms) {
