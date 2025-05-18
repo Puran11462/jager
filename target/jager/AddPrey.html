@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Add New Prey</title>
+    <script>
+        function sendData() {
+            // Create a new object to hold the prey data
+            var prey = {};
+            prey.breed = document.getElementById("breed").value;
+            prey.weight = document.getElementById("weight").value;
+
+            // Convert the object to JSON format
+            var jsonPrey = JSON.stringify(prey);
+
+            // Create a new HTTP request
+            var xhttp = new XMLHttpRequest();
+
+            // What to do when we get a response
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    // Show the full response
+                    document.getElementById("responseView").innerHTML = this.responseText;
+
+                    // Show the response in parts (parsed)
+                    var returned = JSON.parse(this.responseText);
+                    document.getElementById("inparts").innerHTML =
+                        "ID: " + returned.id +
+                        " | Breed: " + returned.breed +
+                        " | Weight: " + returned.weight;
+                }
+            };
+
+            // Set up the request to send data to the RESTful service
+            xhttp.open("POST", "./rest/hunterservice/addprey", true);
+            xhttp.setRequestHeader("Content-type", "application/json");
+            xhttp.send(jsonPrey);
+        }
+    </script>
+</head>
+
+<body>
+    <h2>Add Prey to Database</h2>
+
+    <!-- Form using AJAX -->
+    <form onsubmit="return false;">
+        Breed: <input id="breed" type="text" placeholder="Enter prey breed"><br><br>
+        Weight: <input id="weight" type="text" placeholder="Enter weight"><br><br>
+        <input type="button" value="Send (AJAX)" onclick="sendData();">
+    </form>
+
+    <p id="responseView">Full response will appear here.</p>
+    <p id="inparts">Parsed response will appear here.</p>
+
+    <hr>
+
+    <!-- Simple HTML form (no JavaScript) -->
+    <h3>Alternative: Use normal form submission</h3>
+    <form action="./rest/hunterservice/addprey" method="post">
+        Breed: <input name="breed" type="text"><br><br>
+        Weight: <input name="weight" type="text"><br><br>
+        <input type="submit" value="Send (Form)">
+    </form>
+</body>
+</html>

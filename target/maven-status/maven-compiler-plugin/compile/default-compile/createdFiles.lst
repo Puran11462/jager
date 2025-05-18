@@ -1,0 +1,6 @@
+services\HunterService.class
+data\Prey.class
+services\RobotService.class
+data\Robot.class
+config\AppConfig.class
+services\ApplicationConfig.class

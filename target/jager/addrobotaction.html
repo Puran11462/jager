@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>Lego Robot Control</title></head>
+<body>
+<h1>Lego Robot Control</h1>
+<form id="commandForm">
+    Task:
+    <select id="task">
+        <option value="move_forward">Forward</option>
+        <option value="move_backward">Backward</option>
+        <option value="turn_left">Left</option>
+        <option value="turn_right">Right</option>
+        <option value="stop">Stop</option>
+    </select><br>
+    Speed: <input type="number" id="speed" value="5"><br>
+    Duration: <input type="number" id="duration" value="3"><br>
+    <button type="submit">Send Command</button>
+</form>
+<script>
+document.getElementById("commandForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const data = {
+        task: document.getElementById("task").value,
+        speed: parseInt(document.getElementById("speed").value),
+        duration: parseInt(document.getElementById("duration").value)
+    };
+    await fetch("http://localhost:8080/jager/api/robot/sendCommand", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    });
+    alert("Command sent!");
+});
+</script>
+</body>
+</html>
